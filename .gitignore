@@ -1,6 +1,12 @@
 # Compiled class file
 *.class
 
+#Bot Token
+config/token.txt
+
+# Other Configs
+config/other/
+
 # Log file
 *.log
 

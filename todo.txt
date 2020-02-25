@@ -1,0 +1,20 @@
+save/load vars (ints) to/from config folder
+
+asynchrounous inputs (multiple buttons at once)
+
+save sequences of inputs as commands / scripts $
+
+Later:
+Add Touch Screen support
+Add Keyboard manager with switchable keyboards that activate the touchscreen
+
+
+done:
+Multiple Commands in the same line
+"Multiply" Commands with modifier key (+)
+holding down keys !hold !release !toggle / <key>:h <key>:r <key>:t
+Config Profiles
+move
+  allowed keys
+  key remaps
+  to profiles
