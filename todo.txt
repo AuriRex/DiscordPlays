@@ -1,15 +1,15 @@
-save/load vars (ints) to/from config folder
+save sequences of inputs as commands / scripts $ via chat
 
-asynchrounous inputs (multiple buttons at once)
-
-save sequences of inputs as commands / scripts $
-
-Later:
+LATER:
 Add Touch Screen support
 Add Keyboard manager with switchable keyboards that activate the touchscreen
 
 
-done:
+MAYBE:
+asynchrounous inputs (multiple buttons at once)
+
+
+DONE:
 Multiple Commands in the same line
 "Multiply" Commands with modifier key (+)
 holding down keys !hold !release !toggle / <key>:h <key>:r <key>:t
@@ -18,3 +18,5 @@ move
   allowed keys
   key remaps
   to profiles
+save/load vars (ints) to/from config folder
+implement script execution
