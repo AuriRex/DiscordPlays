@@ -1,5 +1,7 @@
 package me.auri.dplays;
 
+import java.util.ArrayList;
+
 public class Macro {
 
     private final String name;
@@ -27,6 +29,16 @@ public class Macro {
 
     public void setAuthorID(long authorid) {
         this.authorid = authorid;
+    }
+
+    public ArrayList<String> asList() {
+        ArrayList<String> ret = new ArrayList<String>();
+
+        ret.add(this.name);
+        ret.add("" +  this.authorid);
+        ret.add(this.macro);
+
+        return ret;
     }
 
     public Macro(String name, String macro, long authorid) {

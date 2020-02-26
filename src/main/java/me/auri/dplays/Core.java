@@ -11,7 +11,9 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.util.Snowflake;
+import reactor.core.publisher.Mono;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -67,6 +69,8 @@ public class Core {
         ints.put("postDelay", 20);
         ints.put("maxLoops", 15);
     }
+
+    static DiscordClient client;
 
     static {
 
@@ -149,11 +153,78 @@ public class Core {
             
         });
 
+        adminCommands.put("addmacro", event -> {
+
+            String msg = event.getMessage().getContent().orElse("");
+
+            String[] args = msg.split(" ", 3);
+
+            if(args.length == 3) {
+                String name = args[1];
+                String macro = args[2];
+
+                MacroManager.addMacro(name, macro, event.getMessage().getAuthor().get().getId().asLong());
+
+            }
+
+        });
+
+        // Consumer<EmbedCreateSpec> template = spec -> {
+        //     // Edit the spec as you normally would
+        // };
+
+        adminCommands.put("macroinfo", event -> {
+
+            String msg = event.getMessage().getContent().orElse("");
+
+            String[] args = msg.split(" ", 2);
+
+            if(args.length == 2) {
+                String name = args[1];
+
+                Macro m = MacroManager.getMacroObject(name);
+
+                if(m != null) {
+
+                    String macroName = m.getName();
+                    String macroCmds = m.get();
+                    
+                    
+                    // Mono<Message> message = event.getMessage().getChannel().block()
+                    // .createMessage(messageSpec -> messageSpec.setEmbed(template.andThen(embedSpec -> {
+                        
+                    // })));
+                    
+                    Mono<Message> message = event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                        // messageSpec.setContent("Content not in an embed!");
+                        // You can see in this example even with simple singular property defining specs the syntax is concise
+                        messageSpec.setEmbed(embedSpec -> {
+                            if(m.getAuthorID() != 0) {
+                                User author = client.getUserById(Snowflake.of(m.getAuthorID())).block();
+                                embedSpec.setAuthor(author.getUsername(), null, author.getAvatarUrl());
+                            }else {
+                                embedSpec.setAuthor(client.getSelf().block().getUsername(), null, client.getSelf().block().getAvatarUrl());
+                            }
+
+                            embedSpec.setTitle(macroName);
+                            embedSpec.addField("Macro info", macroCmds, false);
+                            embedSpec.setColor(Color.MAGENTA);
+                            // embedSpec.setDescription("Description is in an embed!");
+                        });
+                    });
+                    // 
+
+                    message.block();
+
+                }
+
+            }
+
+        });
+
         adminCommands.put("quit", event -> quit(event));
         adminCommands.put("exit()", event -> System.exit(2));
     }
-
-    static DiscordClient client;
 
     static int count = 0; // <-- Trash :)
 
@@ -172,6 +243,9 @@ public class Core {
 
         defaultVars();
 
+        new InputHandler();
+        new MacroManager();
+
         try {
             ArrayList<String> profileAL = readFile("./config/profile.txt");
             String profile = "";
@@ -180,6 +254,7 @@ public class Core {
             if(profile.equals("")) profile = "default";
             loadConfig(profile);
             loadVars(profile);
+            loadMacros(profile);
             currentConfig = profile;
         } catch (IOException e1) {
             e1.printStackTrace();
@@ -191,9 +266,6 @@ public class Core {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        new InputHandler();
-        new MacroManager();
 
         DiscordClientBuilder clientBuilder = new DiscordClientBuilder(token);
 
@@ -305,10 +377,12 @@ public class Core {
         System.out.println("Switching configs: \"" + currentConfig + "\" -> \"" + newCfg + "\"");
         saveConfig(currentConfig);
         saveVars(currentConfig);
+        saveMacros(currentConfig);
         loadConfig(newCfg);
         loadVars(newCfg);
+        loadMacros(newCfg);
         currentConfig = newCfg;
-
+        System.out.println("Config switched!");
     }
 
     private static void saveConfig(String name) {
@@ -373,6 +447,7 @@ public class Core {
         }
         saveConfig(currentConfig);
         saveVars(currentConfig);
+        saveMacros(currentConfig);
     }
 
     private static void loadVars(String name) {
@@ -428,6 +503,71 @@ public class Core {
             writeFile(path + "v_ints_values.txt", tmpal);
         } catch(IOException ex) {
             ex.printStackTrace();
+        }
+
+    }
+
+    /*
+        Macro File:
+            Macro Name
+            Author ID
+            Macro
+    */
+
+    private final static String macroFileSuffix = ".mcr";
+
+    private static void loadMacros(String name) {
+
+        String path = "./config/macros/other/"+name+"/";
+
+        if (name.equals("default")) {
+            path = "./config/macros/default/";
+        }
+
+        File folder = new File(path);
+
+        for (final File fileEntry : folder.listFiles()) {
+            if (fileEntry.isFile()) {
+                String macroFileName = fileEntry.getName();
+                if(!macroFileName.endsWith(macroFileSuffix)) continue;
+                System.out.println("Loading Macro: "+macroFileName);
+
+                ArrayList<String> macro = null;
+                try {
+                    macro = readFile(path + macroFileName);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    continue;
+                }
+
+                if(macro == null) continue;
+
+                if(macro.size() != 3) continue;
+
+                MacroManager.addMacro(macro.get(0), macro.get(2), Long.parseLong(macro.get(1)));
+            }
+        }
+
+    }
+
+    private static void saveMacros(String name) {
+
+        String path = "./config/macros/other/"+name+"/";
+
+        if (name.equals("default")) {
+            path = "./config/macros/default/";
+        }
+
+        ArrayList<Macro> macros = MacroManager.getMacroList();
+        
+        for(Macro m : macros) {
+
+            try {
+                writeFile(path + m.getName() + macroFileSuffix, m.asList());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
 
     }
