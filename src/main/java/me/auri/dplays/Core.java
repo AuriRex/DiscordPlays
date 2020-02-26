@@ -87,6 +87,11 @@ public class Core {
                 .createMessage("Keys:\n" + listKeys()).block();
         });
 
+        commands.put("inputhelp", event -> {
+            event.getMessage().getChannel().block()
+                .createMessage("Input How-To:\n  0. Type \""+prefix+"listkeys\" to get a List of all pressable Keys.\n  1. type the key into the chat. -> \"RIGHT\"\n  2. chain inputs by seperating them with spaces. -> \"UP RIGHT DOWN LEFT\"\n  3. Loop key inputs with the + operator. -> \"RIGHT+5\" (presses RIGHT 5 times)\n  4. Modify keys with \"!hold <key>\", \""+prefix+"release <key>\" and \""+prefix+"toggle <key>\". -> \""+prefix+"hold RIGHT\"\n  4.5. Modify keys with the : operator (\"<key>:h\", \"<key>:r\" and \"<key>:t\"). -> \"RIGHT:h\"").block();
+        });
+
         // commands.put(">", new InputCommand());
 
         // #########################
@@ -188,7 +193,7 @@ public class Core {
         }
 
         new InputHandler();
-        new ScriptManager();
+        new MacroManager();
 
         DiscordClientBuilder clientBuilder = new DiscordClientBuilder(token);
 

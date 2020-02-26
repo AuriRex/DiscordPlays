@@ -1,4 +1,6 @@
-save sequences of inputs as commands / scripts $ via chat
+save sequences of inputs as macros % via chat
+
+add scripts with control logic $
 
 LATER:
 Add Touch Screen support
@@ -19,4 +21,4 @@ move
   key remaps
   to profiles
 save/load vars (ints) to/from config folder
-implement script execution
+implement macro execution

@@ -145,12 +145,12 @@ class InputHandler {
         return false;
     }
     
-    private void handleCommand(String command, HashSet<String> aK, Map<String, String> iR, HashSet<String> scriptBlockList) {
+    private void handleCommand(String command, HashSet<String> aK, Map<String, String> iR, HashSet<String> macroBlockList) {
         // Right left up+9
 
 
 
-        if(!command.contains(" ") && !command.contains("+") && !command.contains(":") && !command.contains("$")) {
+        if(!command.contains(" ") && !command.contains("+") && !command.contains(":") && !command.contains("%")) {
             if(!isAllowed(command, aK)) return;
             executeCommand(remap(command, iR));
             return;
@@ -161,11 +161,11 @@ class InputHandler {
         for (String cmd : cmds) {
             if(cmd.equals("")) continue;
 
-            if(cmd.contains("+") && !cmd.contains(":") && !cmd.startsWith("$")) {
+            if(cmd.contains("+") && !cmd.contains(":") && !cmd.startsWith("%")) {
 
                 if(handleLoop(cmd, aK, iR)) continue;
 
-            }else if(!cmd.contains("+") && cmd.contains(":") && !cmd.startsWith("$")) {
+            }else if(!cmd.contains("+") && cmd.contains(":") && !cmd.startsWith("%")) {
 
                 // <key>: h r t
                 if(handleModifier(cmd, aK, iR)) continue;
@@ -173,19 +173,21 @@ class InputHandler {
 
             } else {
 
-                if(cmd.startsWith("$")) {
+                if(cmd.startsWith("%")) {
 
-                    if(scriptBlockList.contains(cmd)) continue;
+                    if(macroBlockList.contains(cmd)) continue;
 
                     if(cmd.contains("+") && !cmd.contains(":")) {
 
-                        if(handleScriptLoop(cmd, aK, iR, scriptBlockList)) continue;
+                        // System.out.println("%Macro (Loop): " + cmd);
+                        if(handleMacroLoop(cmd, aK, iR, macroBlockList)) continue;
         
                     } else {
-                        // TODO: Scripts
-                        HashSet<String> newBlockList = copySet(scriptBlockList);
+                        // TODO: Macros
+                        // System.out.println("%Macro: " + cmd);
+                        HashSet<String> newBlockList = copySet(macroBlockList);
                         newBlockList.add(cmd);
-                        handleCommand(ScriptManager.getScript(cmd), aK, iR, newBlockList);
+                        handleCommand(MacroManager.getMacro(cmd), aK, iR, newBlockList);
                     }
 
                 } else {
@@ -203,7 +205,7 @@ class InputHandler {
         return (HashSet<String>) set.clone();
     }
 
-    private boolean handleScriptLoop(String cmd, HashSet<String> aK, Map<String, String> iR, HashSet<String> scriptBlockList) {
+    private boolean handleMacroLoop(String cmd, HashSet<String> aK, Map<String, String> iR, HashSet<String> macroBlockList) {
 
         String[] parts = cmd.split("\\+");
 
@@ -218,9 +220,9 @@ class InputHandler {
             }
             repeat = Math.min(repeat, Core.getVar("maxLoops")); // Maximum loops is 15
             for(int i = repeat; i > 0; i--) {
-                HashSet<String> newBlockList = copySet(scriptBlockList);
+                HashSet<String> newBlockList = copySet(macroBlockList);
                 newBlockList.add(key);
-                handleCommand(key, aK, iR, newBlockList);
+                handleCommand(MacroManager.getMacro(key), aK, iR, newBlockList);
             }
         }
 
@@ -270,6 +272,12 @@ class InputHandler {
 
             if (modifier.equalsIgnoreCase("t")) {
                 toggleKey(remap(key, iR));
+            }
+
+            
+            if (modifier.equalsIgnoreCase("q")) {
+                pressKey(remap(key, iR));
+                releaseKey(remap(key, iR));
             }
 
             // executeCommand(, Core.getVar("postDelay"));
