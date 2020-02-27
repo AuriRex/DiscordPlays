@@ -95,6 +95,7 @@ class InputHandler {
     }
 
     public void pressKey(String key) {
+        if(key.equalsIgnoreCase("NULL")) return;
         try {
             r.keyPress((int) KeyEvent.class.getField("VK_" + key.toUpperCase()).getInt(null));
             isPressed.put(key, true);
@@ -104,6 +105,7 @@ class InputHandler {
     }
 
     private void releaseKey(String key) {
+        if(key.equalsIgnoreCase("NULL")) return;
         try {
             r.keyRelease((int) KeyEvent.class.getField("VK_" + key.toUpperCase()).getInt(null));
             isPressed.put(key, false);

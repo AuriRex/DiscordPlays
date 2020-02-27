@@ -1,10 +1,13 @@
-save sequences of inputs as macros % via chat
 
-add scripts with control logic $
+Mouse input support
+
+lock mouse to area (restrict this programs clicking and not the mouse itself)
+
 
 LATER:
 Add Touch Screen support
 Add Keyboard manager with switchable keyboards that activate the touchscreen
+add scripts with control logic $
 
 
 MAYBE:
@@ -22,3 +25,4 @@ move
   to profiles
 save/load vars (ints) to/from config folder
 implement macro execution
+save sequences of inputs as macros % via chat
