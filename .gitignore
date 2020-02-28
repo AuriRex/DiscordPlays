@@ -3,14 +3,14 @@
 
 #Bot Token
 config/token.txt
+config/profile.txt
+config/discord_plays_channel_ids.txt
 
 # Other Configs
 config/other/*/
 !config/other/
 config/macros/*/
 !config/macros/
-config/profile.txt
-config/discord_plays_channel_ids.txt
 
 # Log file
 *.log
