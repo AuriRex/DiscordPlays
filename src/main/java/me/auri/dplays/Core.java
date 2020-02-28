@@ -226,7 +226,6 @@ public class Core {
         adminCommands.put("exit()", event -> System.exit(2));
     }
 
-    static int count = 0; // <-- Trash :)
 
     public static void main(String[] args) {
 
@@ -256,6 +255,7 @@ public class Core {
             loadVars(profile);
             loadMacros(profile);
             currentConfig = profile;
+            System.out.println("Config \"" + profile + "\" loaded!");
         } catch (IOException e1) {
             e1.printStackTrace();
         }
@@ -332,6 +332,40 @@ public class Core {
 
     }
 
+
+    private static void save() {
+        try {
+            writeFile("./config/discord_plays_channel_ids.txt", discordPlaysList);
+
+            ArrayList<String> tmpAL = new ArrayList<>();
+            tmpAL.add(currentConfig);
+            writeFile("./config/profile.txt", tmpAL);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        saveConfig(currentConfig);
+        saveVars(currentConfig);
+        saveMacros(currentConfig);
+        System.out.println("Config \"" + currentConfig + "\" saved!");
+    }
+
+    private static void switchConfig(String newCfg) {
+
+        System.out.println("Switching configs: \"" + currentConfig + "\" -> \"" + newCfg + "\"");
+        saveConfig(currentConfig);
+        saveVars(currentConfig);
+        saveMacros(currentConfig);
+        System.out.println("Config \"" + currentConfig + "\" saved!");
+        loadConfig(newCfg);
+        loadVars(newCfg);
+        loadMacros(newCfg);
+        currentConfig = newCfg;
+        System.out.println("Config \"" + newCfg + "\" loaded!");
+        System.out.println("Config switched!");
+    }
+
+    static int count = 0; // <-- Trash :)
+
     private static void loadConfig(String name) {
 
         String path = "./config/other/"+name+"/";
@@ -356,33 +390,18 @@ public class Core {
                 // }
             });
 
-            readFile(path + "allowed_keys_remap.txt").forEach(str -> {
+            int count = 0;
+            for ( String str : readFile(path + "allowed_keys_remap.txt")) {
                 str = str.toUpperCase();
 
                 inputRemap.put(tmpKA.get(count), str);
                 System.out.println("Added Key Remap: " + tmpKA.get(count) + " -> " + str);
                 count++;
-
-            });
+            }
         } catch (IOException e1) {
             e1.printStackTrace();
         }
 
-        System.out.println("Config \"" + name + "\" loaded!");
-
-    }
-
-    private static void switchConfig(String newCfg) {
-
-        System.out.println("Switching configs: \"" + currentConfig + "\" -> \"" + newCfg + "\"");
-        saveConfig(currentConfig);
-        saveVars(currentConfig);
-        saveMacros(currentConfig);
-        loadConfig(newCfg);
-        loadVars(newCfg);
-        loadMacros(newCfg);
-        currentConfig = newCfg;
-        System.out.println("Config switched!");
     }
 
     private static void saveConfig(String name) {
@@ -405,49 +424,6 @@ public class Core {
             ex.printStackTrace();
         }
 
-        System.out.println("Config \"" + name + "\" saved!");
-
-    }
-
-    private static String listKeys() {
-        String ret = "";
-        for(String str : allowedKeys) {
-            ret += ", " + str;
-        }
-        return ret;
-    }
-
-    private static void allowkey(MessageCreateEvent event) {
-        String msg = event.getMessage().getContent().get();
-        String key = "";
-        String key_remap = "";
-        try {
-            key = msg.split(" ")[1];
-            key_remap = msg.split(" ")[2];
-            // if(key.length() != 1) throw new Exception("Key length is not equal to 1 (one)");
-        } catch(Exception ex) {
-            System.out.println("allowkey(...) -> Error, invalid key / arguments. : " + msg + "\n" + ex.getMessage());
-            return;
-        }
-        
-        System.out.println("Chat:Allowkey: "+key.toUpperCase()+" -> "+key_remap.toUpperCase());
-        allowedKeys.add(key.toUpperCase());
-        inputRemap.put(key.toUpperCase(), key_remap.toUpperCase());
-    }
-
-    private static void save() {
-        try {
-            writeFile("./config/discord_plays_channel_ids.txt", discordPlaysList);
-
-            ArrayList<String> tmpAL = new ArrayList<>();
-            tmpAL.add(currentConfig);
-            writeFile("./config/profile.txt", tmpAL);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        saveConfig(currentConfig);
-        saveVars(currentConfig);
-        saveMacros(currentConfig);
     }
 
     private static void loadVars(String name) {
@@ -525,6 +501,7 @@ public class Core {
         }
 
         File folder = new File(path);
+        folder.mkdirs();
 
         for (final File fileEntry : folder.listFiles()) {
             if (fileEntry.isFile()) {
@@ -571,6 +548,34 @@ public class Core {
         }
 
     }
+
+    private static String listKeys() {
+        String ret = "";
+        for(String str : allowedKeys) {
+            ret += ", " + str;
+        }
+        return ret;
+    }
+
+    private static void allowkey(MessageCreateEvent event) {
+        String msg = event.getMessage().getContent().get();
+        String key = "";
+        String key_remap = "";
+        try {
+            key = msg.split(" ")[1];
+            key_remap = msg.split(" ")[2];
+            // if(key.length() != 1) throw new Exception("Key length is not equal to 1 (one)");
+        } catch(Exception ex) {
+            System.out.println("allowkey(...) -> Error, invalid key / arguments. : " + msg + "\n" + ex.getMessage());
+            return;
+        }
+        
+        System.out.println("Chat:Allowkey: "+key.toUpperCase()+" -> "+key_remap.toUpperCase());
+        allowedKeys.add(key.toUpperCase());
+        inputRemap.put(key.toUpperCase(), key_remap.toUpperCase());
+    }
+
+    
 
     private static String listDPL(Guild guild) {
         String ret = "";

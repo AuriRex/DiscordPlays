@@ -125,6 +125,16 @@ class InputHandler {
         else pressKey(key);
     }        
 
+    private boolean ignoreIfFirstIsNotValid = true;
+
+    public static void setIgnoreIfFirstIsNotValid(boolean b) {
+        instance.ignoreIfFirstIsNotValid = b;
+    }
+
+    public static boolean getIgnoreIfFirstIsNotValid() {
+        return instance.ignoreIfFirstIsNotValid;
+    }
+
 	public boolean handleInput(String content) {
 
         HashSet<String> allowedKeys = Core.getAllowedKeys();
@@ -141,6 +151,7 @@ class InputHandler {
             }
 
         } else {
+            if(!isAllowed(content.split(" ", 2)[0], allowedKeys)) return false;
             handleCommand(content, allowedKeys, inputRemap, new HashSet<String>());
         }
 
