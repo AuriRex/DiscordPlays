@@ -5,7 +5,7 @@ lock mouse to area (restrict this programs clicking and not the mouse itself)
 
 
 LATER:
-Add Touch Screen support  
+Add Touch Screen support   
 Add Keyboard manager with switchable keyboards that activate the touchscreen
 add scripts with control logic $
 
