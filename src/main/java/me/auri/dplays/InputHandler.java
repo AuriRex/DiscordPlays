@@ -151,7 +151,8 @@ class InputHandler {
             }
 
         } else {
-            if(!isAllowed(content.split(" ", 2)[0], allowedKeys)) return false;
+            if(!content.startsWith("%"))
+                if(!isAllowed(content.split(" ", 2)[0].split(":", 2)[0].split("\\+", 2)[0], allowedKeys)) return false;
             handleCommand(content, allowedKeys, inputRemap, new HashSet<String>());
         }
 

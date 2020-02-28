@@ -3,7 +3,6 @@ package me.auri.dplays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class MacroManager {
 
@@ -17,11 +16,6 @@ public class MacroManager {
         instance = this;
 
         macroList = new HashMap<>();
-
-        // addMacro("%upright", "up right up right up right", 0);
-        // addMacro("%jump", "s:h up+5 s:r", 0);
-        // addMacro("%recursion", "left:h %jump left:r down+5", 0);
-        // addMacro("%error", "right:h %error right:r", 0);
 
     }
 
