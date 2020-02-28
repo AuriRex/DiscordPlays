@@ -9,6 +9,8 @@ config/other/*/
 !config/other/
 config/macros/*/
 !config/macros/
+config/profile.txt
+config/discord_plays_channel_ids.txt
 
 # Log file
 *.log
