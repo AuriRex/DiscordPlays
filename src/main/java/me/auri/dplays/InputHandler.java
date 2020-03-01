@@ -79,7 +79,87 @@ class InputHandler {
             r.delay(Core.getVar("postDelay"));
 
         });
+
+        commands.put("type", (cmd, aK, iR) -> {
+
+            String[] args = cmd.split(" ");
+            if(args.length < 2) return;
+
+            cmd = cmd.split(" ",2)[1];
+
+            if(!isAllowed("up", aK)) return;
+            if(!isAllowed("down", aK)) return;
+            if(!isAllowed("left", aK)) return;
+            if(!isAllowed("right", aK)) return;
+            if(!isAllowed("A", aK)) return;
+
+            // TODO: rename variables to conform to java naming conventions.
+            int keyboard_const = 13;
+            String[] keyboard_layout = {
+                "ABCDEFGHIJ ,.KLMNOPQRST '-UVWXYZ     ♂♀             0123456789   ",
+                "abcdefghij ,.klmnopqrst '-uvwxyz     ♂♀             0123456789   ",
+                ",.:;!?   ♂♀      ()         ~@#%+-*/=                            "
+            };
+
+            int cursor_x = 0;
+            int cursor_y = 0;
+            int cursor_k = 0;
+
+            int destination_x = 0;
+            int destination_y = 0;
+
+            String final_command = "";
+
+            for (int j = 0; j < cmd.length(); j++) {
+                String c = "" + cmd.charAt(j);
+
+                if(! keyboard_layout[cursor_k].contains(c)) {
+                    if (cursor_x != 0)
+                        final_command += " left+" + (cursor_x);
+                    final_command += " up+" + (cursor_y+1);
+                    for (int i = 0; i < keyboard_layout.length; i++) {
+                        if(keyboard_layout[i].contains(c)) {
+                            cursor_k = i;
+                            if (cursor_k != 0)
+                                final_command += " right+" + cursor_k;
+                            final_command += " A";
+                            final_command += " left+" + (cursor_k+1);
+                            final_command += " right";
+                            final_command += " down";
+                            cursor_x = 0;
+                            cursor_y = 0;
+
+                        }
+                    }
+                }
+
+                destination_y = (int) (keyboard_layout[cursor_k].indexOf(c) / keyboard_const);
+                destination_x = (int) (keyboard_layout[cursor_k].indexOf(c) % keyboard_const);
+                if (destination_x - cursor_x < 0)
+                    final_command += " left+" + (destination_x - cursor_x) * -1;
+                else if (destination_x - cursor_x > 0)
+                    final_command += " right+" + (destination_x - cursor_x);
+
+                if (destination_y - cursor_y < 0)
+                    final_command += " up+" + (destination_y - cursor_y) * -1;
+                else if (destination_y - cursor_y > 0)
+                    final_command += " down+" + (destination_y - cursor_y);
+
+                cursor_x = destination_x;
+                cursor_y = destination_y;
+                final_command += " A";
+
+            }
+
+            System.out.println("type final output: "+final_command);
+            handleCommand(final_command.substring(1), aK, iR, null);
+
+
+        });
+
     }
+
+    
 
     private Map<String, Boolean> isPressed = new HashMap<>();
 
@@ -96,6 +176,7 @@ class InputHandler {
 
     public void pressKey(String key) {
         if(key.equalsIgnoreCase("NULL")) return;
+        // System.out.println("Pressing: "+key);
         try {
             r.keyPress((int) KeyEvent.class.getField("VK_" + key.toUpperCase()).getInt(null));
             isPressed.put(key, true);
@@ -161,7 +242,7 @@ class InputHandler {
     
     private void handleCommand(String command, HashSet<String> aK, Map<String, String> iR, HashSet<String> macroBlockList) {
         // Right left up+9
-
+        if(macroBlockList == null) macroBlockList = new HashSet<>();
 
 
         if(!command.contains(" ") && !command.contains("+") && !command.contains(":") && !command.contains("%")) {
