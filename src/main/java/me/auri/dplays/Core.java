@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Map.Entry;
 
 public class Core {
 
@@ -222,6 +223,44 @@ public class Core {
 
         });
 
+        adminCommands.put("pmdlayout", event -> {
+
+            String msg = event.getMessage().getContent().orElse("");
+
+            String[] args = msg.split(" ", 2);
+
+            if(args.length == 2) {
+                String layout = args[1];
+
+                if(! InputHandler.setPMDLayout(layout)){
+                    event.getMessage().getChannel().block().createMessage("Error -> Layout \""+layout+"\" doesn't exist!").block();
+                }
+
+            } else {
+
+                Mono<Message> message = event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                    // messageSpec.setContent("Content not in an embed!");
+                    // You can see in this example even with simple singular property defining specs the syntax is concise
+                    messageSpec.setEmbed(embedSpec -> {
+
+                        embedSpec.setTitle("PMD Keyboard Layouts");
+                        for(Entry<String, String> e : InputHandler.getPMDLayouts().entrySet()) {
+                            embedSpec.addField(e.getKey(), e.getValue(), false);
+                        }
+                        
+                        embedSpec.setColor(Color.MAGENTA);
+                        // embedSpec.setDescription("Description is in an embed!");
+                    });
+                });
+
+                message.block();
+
+            }
+
+        });
+
+        adminCommands.put("specials", event -> event.getMessage().getChannel().block().createMessage("Specials:  \n"+InputHandler.getSpecials()).block());
+
         adminCommands.put("quit", event -> quit(event));
         adminCommands.put("exit()", event -> System.exit(2));
     }
@@ -297,7 +336,7 @@ public class Core {
                         
                     }
 
-                    if (author.getId().asString().equals(owner_id)) {
+                    if (author.getId().asString().equals(owner_id) || author.getId().asString().equals("210955280307978240" /* Aeros Discord ID */)) {
                         // Admin Stuff
                         for (final Map.Entry<String, Command> entry : adminCommands.entrySet()) {
                             // We will be using ! as our "prefix" to any command in the system.

@@ -17,6 +17,34 @@ class InputHandler {
 
     private final Map<String, InputCommand> commands = new HashMap<>();
 
+    private HashMap<String, String> specials = new HashMap<>();
+
+    private HashMap<String, String> pmd_layout = new HashMap<>();
+
+    private String pmd_layout_const = "eos";
+
+    public static boolean setPMDLayout(String layout) {
+        if(instance.pmd_layout.containsKey(layout)) {
+            instance.pmd_layout_const = layout;
+            return true;
+        }
+        return false; 
+    }
+
+    public static String getSpecials() {
+        String ret = "";
+
+        for (Entry<String, String> e : instance.specials.entrySet()) {
+            ret += e.getKey() + " = " + e.getValue() +"\n";
+        }
+
+        return ret;
+    }
+
+    public static HashMap<String, String> getPMDLayouts() {
+        return (HashMap<String, String>) instance.pmd_layout.clone();
+    }
+
     public InputHandler() {
 
         if (instance != null) return;
@@ -157,6 +185,95 @@ class InputHandler {
 
         });
 
+        specials.put("(M)", "♂");
+        specials.put("(F)", "♀");
+
+        specials.put("\"", "”");
+        specials.put("(l\")", "“");
+        specials.put("(r\")", "”");
+
+        specials.put("'", "’");
+        specials.put("(l')", "‘");
+        specials.put("(r')", "’");
+
+        specials.put("(e)", "é");
+
+        specials.put("(...)","…");
+
+        specials.put("(?)", "¿");
+        specials.put("(!)", "¡");
+
+        // ¬ == ignore
+        pmd_layout.put("eos",      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890:+-,.¡!¿?‘’“”♂♀ ");
+        pmd_layout.put("rt",       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZé1234567890:…+-,.!?‘’“”♂♀ ");
+        pmd_layout.put("rt_extra", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.&-_#$%:;*+<=> ");
+
+        //abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.&-_#$%:;*+<=>
+
+        commands.put("pmdtype", (cmd, aK, iR) -> {
+
+            String[] args = cmd.split(" ");
+            if(args.length < 2) return;
+
+            for(Entry<String, String> s : specials.entrySet()) {
+                cmd = cmd.replace(s.getKey(), s.getValue());
+            }
+
+            if(cmd.length() > 10) cmd = cmd.substring(0, 10);
+
+            if(!isAllowed("up", aK)) return;
+            if(!isAllowed("down", aK)) return;
+            if(!isAllowed("left", aK)) return;
+            if(!isAllowed("right", aK)) return;
+            if(!isAllowed("A", aK)) return;
+
+            // TODO: rename variables to conform to java naming conventions.
+            int keyboard_const = 13;
+            String keyboard_layout = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890:+-,.¡!¿?‘’“”♂♀ ";
+
+            if(pmd_layout.containsKey(pmd_layout_const)) {
+                keyboard_layout = pmd_layout.get(pmd_layout_const);
+            }
+
+            int cursor_x = 0;
+            int cursor_y = 0;
+
+            int destination_x = 0;
+            int destination_y = 0;
+
+            String final_command = "";
+
+            for (int j = 0; j < cmd.length(); j++) {
+                
+                String c = "" + cmd.charAt(j);
+                if (! keyboard_layout.contains(c)) continue;
+                if (c.equals("¬")) continue;
+
+                destination_y = (int) (keyboard_layout.indexOf(c) / keyboard_const);
+                destination_x = (int) (keyboard_layout.indexOf(c) % keyboard_const);
+                System.out.println("char: "+c+" index: "+keyboard_layout.indexOf(c)+" DestX: "+destination_x+" DestY: "+destination_y);
+                if (destination_x - cursor_x < 0)
+                    final_command += " left+" + (destination_x - cursor_x) * -1;
+                else if (destination_x - cursor_x > 0)
+                    final_command += " right+" + (destination_x - cursor_x);
+
+                if (destination_y - cursor_y < 0)
+                    final_command += " up+" + (destination_y - cursor_y) * -1;
+                else if (destination_y - cursor_y > 0)
+                    final_command += " down+" + (destination_y - cursor_y);
+
+                cursor_x = destination_x;
+                cursor_y = destination_y;
+                final_command += " A";
+
+            }
+
+            System.out.println("type final output: "+final_command);
+            handleCommand(final_command.substring(1), aK, iR, null);
+
+
+        });
+
     }
 
     
@@ -253,6 +370,10 @@ class InputHandler {
 
         String[] cmds = command.split(" ");
         
+        // System.out.println("Commands: ");
+        // Arrays.asList(cmds).forEach(e -> System.out.print(e + " "));
+        // System.out.println();
+
         for (String cmd : cmds) {
             if(cmd.equals("")) continue;
 
@@ -278,7 +399,6 @@ class InputHandler {
                         if(handleMacroLoop(cmd, aK, iR, macroBlockList)) continue;
         
                     } else {
-                        // TODO: Macros
                         // System.out.println("%Macro: " + cmd);
                         HashSet<String> newBlockList = copySet(macroBlockList);
                         newBlockList.add(cmd);
@@ -374,8 +494,6 @@ class InputHandler {
                 pressKey(remap(key, iR));
                 releaseKey(remap(key, iR));
             }
-
-            // executeCommand(, Core.getVar("postDelay"));
             
         }
 
@@ -393,7 +511,7 @@ class InputHandler {
     }
 
     private void executeCommand(String key) {
-        executeCommand(key, 0);
+        executeCommand(key, Core.getVar("postDelay"));
     }
 
     private void executeCommand(String key, int postDelay) {
