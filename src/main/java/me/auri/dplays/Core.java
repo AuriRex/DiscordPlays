@@ -261,6 +261,10 @@ public class Core {
 
         adminCommands.put("specials", event -> event.getMessage().getChannel().block().createMessage("Specials:  \n"+InputHandler.getSpecials()).block());
 
+        adminCommands.put("enableDP", event -> InputHandler.setEnabled(true));
+        adminCommands.put("disableDP", event -> InputHandler.setEnabled(false));
+        adminCommands.put("isDP", event -> event.getMessage().getChannel().block().createMessage("DiscordPlays enabled: "+InputHandler.isEnabled()).block());
+
         adminCommands.put("quit", event -> quit(event));
         adminCommands.put("exit()", event -> System.exit(2));
     }

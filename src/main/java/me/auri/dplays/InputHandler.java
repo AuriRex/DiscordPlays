@@ -23,6 +23,8 @@ class InputHandler {
 
     private String pmd_layout_const = "eos";
 
+    private boolean enabled = true;
+
     public static boolean setPMDLayout(String layout) {
         if(instance.pmd_layout.containsKey(layout)) {
             instance.pmd_layout_const = layout;
@@ -335,6 +337,8 @@ class InputHandler {
 
 	public boolean handleInput(String content) {
 
+        if(!enabled) return false;
+
         HashSet<String> allowedKeys = Core.getAllowedKeys();
         Map<String, String> inputRemap = Core.getInputRemap();
 
@@ -527,5 +531,15 @@ class InputHandler {
             r.delay(postDelay);
         }
     }
+
+	public static void setEnabled(boolean b) {
+        
+        instance.enabled = b;
+
+	}
+
+	public static boolean isEnabled() {
+		return instance.enabled;
+	}
 
 }
