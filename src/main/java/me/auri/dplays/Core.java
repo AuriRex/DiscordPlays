@@ -7,6 +7,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.MessageChannel;
+import discord4j.core.object.entity.TextChannel;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
@@ -20,11 +21,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Map.Entry;
 
@@ -37,6 +41,8 @@ public class Core {
     private static HashSet<String> allowedKeys = new HashSet<>();
 
     private static Map<String, String> inputRemap = new HashMap<>();
+
+    public static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss");
 
     public static Map<String, String> getInputRemap() {
         return inputRemap;
@@ -99,7 +105,7 @@ public class Core {
                 .createMessage("Input How-To:\n  0. Type \""+prefix+"listkeys\" to get a List of all pressable Keys.\n  1. type the key into the chat. -> \"RIGHT\"\n  2. chain inputs by seperating them with spaces. -> \"UP RIGHT DOWN LEFT\"\n  3. Loop key inputs with the + operator. -> \"RIGHT+5\" (presses RIGHT 5 times)\n  4. Modify keys with \"!hold <key>\", \""+prefix+"release <key>\" and \""+prefix+"toggle <key>\". -> \""+prefix+"hold RIGHT\"\n  4.5. Modify keys with the : operator (\"<key>:h\", \"<key>:r\" and \"<key>:t\"). -> \"RIGHT:h\"").block();
         });
 
-        commands.put("online", event -> {
+        commands.put("playing", event -> {
             try {
                 HashMap<String, String> online = TerrariaCommunicator.getOnlinePlayers();
                 event.getMessage().getChannel().block().createMessage(messageSpec -> {
@@ -108,6 +114,29 @@ public class Core {
                         for(String key : online.keySet())
                             embedSpec.addField("###", key, true);
                         embedSpec.setColor(Color.WHITE);
+                    });
+                }).block();
+            } catch(Exception ex) {
+                ex.printStackTrace();
+                System.out.println("Exception cought...");
+            }
+            
+        });
+
+        commands.put("online", event -> {
+            try {
+                boolean isOnline = TerrariaCommunicator.isOnline();
+                event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                    messageSpec.setEmbed(embedSpec -> {
+                        
+                        if(isOnline) {
+                            embedSpec.setTitle("Terraria Server is online!");
+                            embedSpec.setColor(Color.GREEN);
+                        } else {
+                            embedSpec.setTitle("Terraria Server is offline!");
+                            embedSpec.setColor(Color.RED);
+                        }
+                            
                     });
                 }).block();
             } catch(Exception ex) {
@@ -359,7 +388,7 @@ public class Core {
                     if(terraria_msg.equals("")) return;
                     // messageSpec.setContent("Content not in an embed!");
                     // You can see in this example even with simple singular property defining specs the syntax is concise
-                    messageSpec.setContent(terraria_msg_author + " > " + terraria_msg);
+                    messageSpec.setContent("**"+terraria_msg_author + "** > ``" + terraria_msg + "``");
                 }).block();
             });
 
@@ -397,9 +426,53 @@ public class Core {
                 }).block();
             });
 
+            TerrariaCommunicator.subscribe((TerrariaServerBroadcastEvent) e -> {
+
+                terraria_channel.createMessage(messageSpec -> {
+
+                    String[] terraria_args = e.split("\n",2);
+                    if(terraria_args.length != 2) return;
+                    String terraria_message = terraria_args[0];
+                    String terraria_color = terraria_args[1];
+                    // System.out.println("Color: "+terraria_color);
+                    String[] col = terraria_color.replace("{", "").replace("}", "").split(" ");
+                    HashMap<Character, Integer> color_map = new HashMap<>();
+
+                    Color temp_color;
+
+                    try {
+                        for(String s : col) {
+                            String[] splitted = s.split(":");
+                            color_map.put(splitted[0].charAt(0), Integer.parseInt(splitted[1]));
+                        }
+                        temp_color = new Color(color_map.get('R'),color_map.get('G'),color_map.get('B'));
+                    } catch(Exception ex) {
+                        temp_color = Color.WHITE;
+                    }
+
+                    final Color final_color = temp_color;
+
+                    if(terraria_message.equals("")) return;
+                    // messageSpec.setContent("Content not in an embed!");
+                    // You can see in this example even with simple singular property defining specs the syntax is concise
+                    messageSpec.setEmbed(embedSpec -> {
+                        embedSpec.setTitle(terraria_message);
+                        if(final_color != null)
+                            embedSpec.setColor(final_color);
+                        else embedSpec.setColor(Color.WHITE);
+                    });
+                }).block();
+
+            });
+
+            TerrariaCommunicator.subscribe((TerrariaServerUnknownEvent) e -> {
+                System.out.println("Unknown Event: "+e);
+            });
+
         }catch(Exception ex) {
             ex.printStackTrace();
         }
+        // LocalDateTime now = LocalDateTime.now();
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 // subscribe is like block, in that it will *request* for action
@@ -408,13 +481,29 @@ public class Core {
                 .subscribe(event -> {
                     final Message message = event.getMessage();
                     final String content = message.getContent().orElse("");
-                    final User author = message.getAuthor().get();
+                    final User author;
+
+                    try {
+                        author = message.getAuthor().get();
+                    } catch(NoSuchElementException ex) {
+                        System.out.println("Error -> Main event: No Author (NoSuchElementException)");
+                        return;
+                    }
                     final MessageChannel channel = message.getChannel().block();
 
                     if (author.getId().asString().equals(client.getSelfId().get().asString()))
                         return;
 
-                    System.out.println("New Message: " + event.getMember().get().getDisplayName() + " : " + content);
+                    
+
+                    LocalDateTime now = LocalDateTime.now();
+
+                    if(content.equals("")) {
+                        System.out.println("[" + DTF.format(now) + "] " +event.getMessage().getGuild().block().getName()+":"+ ((TextChannel) event.getMessage().getChannel().block()).getName() + ": " + event.getMember().get().getUsername() + " sent an empty message.");
+                        return;
+                    }
+
+                    System.out.println("[" + DTF.format(now) + "] " +event.getMessage().getGuild().block().getName()+":"+ ((TextChannel) event.getMessage().getChannel().block()).getName() + ": " + event.getMember().get().getUsername() + " : " + content);
                     if (discordPlaysList.contains(channel.getId().asString())) {
                         // channel.createMessage("\"" + content + "\"").block();
                         

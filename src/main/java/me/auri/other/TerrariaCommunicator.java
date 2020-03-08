@@ -110,11 +110,31 @@ public class TerrariaCommunicator {
                         }
                     });
                     break;
+                case "GamePostInitialize":
+                    events.forEach(e -> {
+                        if(e instanceof TerrariaServerGamePostInitializeEvent) e.execute(content);
+                    });
+                    break;
+                case "ServerInit":
+                    events.forEach(e -> {
+                        if(e instanceof TerrariaServerInitEvent) e.execute(content);
+                    });
+                    break;
+                case "ServerShutdown":
+                    events.forEach(e -> {
+                        if(e instanceof TerrariaServerShutdownEvent) e.execute(content);
+                    });
+                    break;
+                case "ServerBroadcast":
+                    events.forEach(e -> {
+                        if(e instanceof TerrariaServerBroadcastEvent) e.execute(content);
+                    });
+                    break;
                 default:
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerUnknownEvent) e.execute(content);
+                        if(e instanceof TerrariaServerUnknownEvent) e.execute(receivedData);
                     });
-            }
+            }//ServerBroadcast TerrariaServerBroadcastEvent
         } catch(IndexOutOfBoundsException ex) {
             System.out.println("IOoBException: TerrariaCommunicator -> this shouldn't happen.");
         }
@@ -150,6 +170,13 @@ public class TerrariaCommunicator {
         }
 
         return ret;
+	}
+
+	public static boolean isOnline() {
+        String ret = sendData("ping");
+        if(!ret.equals("Error"))
+            return true;
+        return false;
 	}
 
 }
