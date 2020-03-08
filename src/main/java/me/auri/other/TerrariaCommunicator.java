@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import me.auri.other.events.*;
 
@@ -42,8 +43,17 @@ public class TerrariaCommunicator {
         serverThread.stopNow();
     }
 
+    private static HashMap<String, String> formatReplacer = new HashMap<>();
+
+    public static void addFormatReplace(String replace, String with) {
+        formatReplacer.put(replace, with);
+    }
+
     public static void sendFormatedMessage(String author, String message) {
-        sendMessage("<Discord> " + author + " > " + message);
+        for(Entry<String,String> e : formatReplacer.entrySet()) {
+            message = message.replace(e.getKey(), e.getValue());
+        }
+        sendMessage("[c/2f3136:<Discord>] " + author + " [c/2f3136:>] [c/dcddde:" + message + "]");
     }
 
     public static void sendMessage(String message) {
@@ -138,9 +148,7 @@ public class TerrariaCommunicator {
                     if (content.split("\n")[0].contains("has joined the ") && content.split("\n")[0].endsWith(" party.")) {
 
                         if(teamJoinMsg.containsKey(content)) {
-                            if(teamJoinMsg.get(content) <= System.currentTimeMillis() - 5000) {
-                                teamJoinMsg.remove(content);
-                            } else {
+                            if(! (teamJoinMsg.get(content) <= System.currentTimeMillis() - 5000)) {
                                 break;
                             }
                         }

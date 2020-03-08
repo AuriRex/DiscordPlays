@@ -1,4 +1,4 @@
 package me.auri.other.events;
 
-public interface TerrariaServerJoinPartyEvent extends TerrariaServerBroadcastEvent {
+public interface TerrariaServerJoinPartyEvent extends TerrariaServerEvent {
 }

@@ -372,6 +372,8 @@ public class Core {
 
         client = clientBuilder.build();
 
+        TerrariaCommunicator.addFormatReplace("<:i29:686297958316245002>", "[i:29]");
+
         try {
             // discord_server = client.getGuildById(Snowflake.of("554100310772154368")).block();
             terraria_channel = (MessageChannel) client.getChannelById(Snowflake.of("676151086700036126")).block();
