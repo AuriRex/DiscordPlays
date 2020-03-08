@@ -83,56 +83,85 @@ public class TerrariaCommunicator {
         return "Error";
     }    
 
-	public static void handleIncomingData(String receivedData) {
+    static HashMap<String, Long> teamJoinMsg = new HashMap<>();
+
+    public static void handleIncomingData(String receivedData) {
 
         String[] rawData = receivedData.split(":", 2);
         String event = rawData[0];
         String content = rawData[1].substring(1);
 
-        try{
-            switch(event) {
+        try {
+            switch (event) {
                 case "ServerJoin":
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerJoinEvent) e.execute(content);
+                        if (e instanceof TerrariaServerJoinEvent)
+                            e.execute(content);
                     });
                     break;
                 case "ServerLeave":
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerLeaveEvent) e.execute(content);
+                        if (e instanceof TerrariaServerLeaveEvent)
+                            e.execute(content);
                     });
                     break;
                 case "ServerChat":
                     events.forEach(e -> {
-                        if(content.split("\n",2)[1].startsWith("/")) {
-                            if(e instanceof TerrariaServerCommandEvent) e.execute(content);
+                        if (content.split("\n", 2)[1].startsWith("/")) {
+                            if (e instanceof TerrariaServerCommandEvent)
+                                e.execute(content);
                         } else {
-                            if(e instanceof TerrariaServerChatEvent) e.execute(content);
+                            if (e instanceof TerrariaServerChatEvent)
+                                e.execute(content);
                         }
                     });
                     break;
                 case "GamePostInitialize":
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerGamePostInitializeEvent) e.execute(content);
+                        if (e instanceof TerrariaServerGamePostInitializeEvent)
+                            e.execute(content);
                     });
                     break;
                 case "ServerInit":
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerInitEvent) e.execute(content);
+                        if (e instanceof TerrariaServerInitEvent)
+                            e.execute(content);
                     });
                     break;
                 case "ServerShutdown":
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerShutdownEvent) e.execute(content);
+                        if (e instanceof TerrariaServerShutdownEvent)
+                            e.execute(content);
                     });
                     break;
                 case "ServerBroadcast":
-                    events.forEach(e -> {
-                        if(e instanceof TerrariaServerBroadcastEvent) e.execute(content);
-                    });
+                    if (content.split("\n")[1].contains("has joined the ") && content.split("\n")[1].endsWith(" party.")) {
+
+                        if(teamJoinMsg.containsKey(content)) {
+                            if(teamJoinMsg.get(content) <= System.currentTimeMillis() - 5000) {
+                                teamJoinMsg.remove(content);
+                            } else {
+                                break;
+                            }
+                        }
+
+                        events.forEach(e -> {
+                            if(e instanceof TerrariaServerJoinPartyEvent)
+                                e.execute(content);
+                        });
+
+                        teamJoinMsg.put(content, System.currentTimeMillis());
+                    } else {
+                        events.forEach(e -> {
+                            if(e instanceof TerrariaServerBroadcastEvent)
+                                e.execute(content);
+                        });
+                    }
                     break;
                 default:
                     events.forEach(e -> {
-                        if(e instanceof TerrariaServerUnknownEvent) e.execute(receivedData);
+                        if(e instanceof TerrariaServerUnknownEvent)
+                            e.execute(receivedData);
                     });
             }//ServerBroadcast TerrariaServerBroadcastEvent
         } catch(IndexOutOfBoundsException ex) {
