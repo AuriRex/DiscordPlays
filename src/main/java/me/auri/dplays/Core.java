@@ -373,6 +373,8 @@ public class Core {
         client = clientBuilder.build();
 
         TerrariaCommunicator.addFormatReplace("<:i29:686297958316245002>", "[i:29]");
+        TerrariaCommunicator.addFormatReplace("@", "");
+        TerrariaCommunicator.addFormatReplace("`", "'");
 
         try {
             // discord_server = client.getGuildById(Snowflake.of("554100310772154368")).block();
