@@ -11,6 +11,8 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.util.Snowflake;
+import me.auri.other.TerrariaCommunicator;
+import me.auri.other.events.*;
 import reactor.core.publisher.Mono;
 
 import java.awt.Color;
@@ -95,6 +97,24 @@ public class Core {
         commands.put("inputhelp", event -> {
             event.getMessage().getChannel().block()
                 .createMessage("Input How-To:\n  0. Type \""+prefix+"listkeys\" to get a List of all pressable Keys.\n  1. type the key into the chat. -> \"RIGHT\"\n  2. chain inputs by seperating them with spaces. -> \"UP RIGHT DOWN LEFT\"\n  3. Loop key inputs with the + operator. -> \"RIGHT+5\" (presses RIGHT 5 times)\n  4. Modify keys with \"!hold <key>\", \""+prefix+"release <key>\" and \""+prefix+"toggle <key>\". -> \""+prefix+"hold RIGHT\"\n  4.5. Modify keys with the : operator (\"<key>:h\", \"<key>:r\" and \"<key>:t\"). -> \"RIGHT:h\"").block();
+        });
+
+        commands.put("online", event -> {
+            try {
+                HashMap<String, String> online = TerrariaCommunicator.getOnlinePlayers();
+                event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                    messageSpec.setEmbed(embedSpec -> {
+                        embedSpec.setTitle("Online Players:");
+                        for(String key : online.keySet())
+                            embedSpec.addField("###", key, true);
+                        embedSpec.setColor(Color.WHITE);
+                    });
+                }).block();
+            } catch(Exception ex) {
+                ex.printStackTrace();
+                System.out.println("Exception cought...");
+            }
+            
         });
 
         // commands.put(">", new InputCommand());
@@ -270,6 +290,9 @@ public class Core {
     }
 
 
+    static Guild discord_server = null;
+    static MessageChannel terraria_channel = null;
+
     public static void main(String[] args) {
 
         String token = "";
@@ -287,13 +310,17 @@ public class Core {
 
         new InputHandler();
         new MacroManager();
+        TerrariaCommunicator.init();
 
         try {
             ArrayList<String> profileAL = readFile("./config/profile.txt");
             String profile = "";
-            if(profileAL == null || profileAL.size() == 0) profile = "default";
-            else profile = profileAL.get(0);
-            if(profile.equals("")) profile = "default";
+            if (profileAL == null || profileAL.size() == 0)
+                profile = "default";
+            else
+                profile = profileAL.get(0);
+            if (profile.equals(""))
+                profile = "default";
             loadConfig(profile);
             loadVars(profile);
             loadMacros(profile);
@@ -315,6 +342,64 @@ public class Core {
         clientBuilder.setInitialPresence(Presence.online(Activity.watching("all of you >:)")));
 
         client = clientBuilder.build();
+
+        try {
+            // discord_server = client.getGuildById(Snowflake.of("554100310772154368")).block();
+            terraria_channel = (MessageChannel) client.getChannelById(Snowflake.of("676151086700036126")).block();
+            // TestServer: 681562227597246471
+            // BuCi: 676151086700036126
+
+            TerrariaCommunicator.subscribe((TerrariaServerChatEvent) e -> {
+                terraria_channel.createMessage(messageSpec -> {
+
+                    String[] terraria_args = e.split("\n",2);
+                    if(terraria_args.length != 2) return;
+                    String terraria_msg_author = terraria_args[0];
+                    String terraria_msg = terraria_args[1];
+                    if(terraria_msg.equals("")) return;
+                    // messageSpec.setContent("Content not in an embed!");
+                    // You can see in this example even with simple singular property defining specs the syntax is concise
+                    messageSpec.setContent(terraria_msg_author + " > " + terraria_msg);
+                }).block();
+            });
+
+            TerrariaCommunicator.subscribe((TerrariaServerJoinEvent) e -> {
+                terraria_channel.createMessage(messageSpec -> {
+
+                    String[] terraria_args = e.split("\n",2);
+                    if(terraria_args.length != 2) return;
+                    String terraria_user_name = terraria_args[0];
+                    String terraria_user_ip = terraria_args[1];
+                    if(terraria_user_name.equals("")) return;
+                    // messageSpec.setContent("Content not in an embed!");
+                    // You can see in this example even with simple singular property defining specs the syntax is concise
+                    messageSpec.setEmbed(embedSpec -> {
+                        embedSpec.setTitle(terraria_user_name + " is connecting to the Server.");
+                        embedSpec.setColor(Color.GREEN);
+                    });
+                }).block();
+            });
+
+            TerrariaCommunicator.subscribe((TerrariaServerLeaveEvent) e -> {
+                terraria_channel.createMessage(messageSpec -> {
+
+                    String[] terraria_args = e.split("\n",2);
+                    if(terraria_args.length != 2) return;
+                    String terraria_user_name = terraria_args[0];
+                    String terraria_user_ip = terraria_args[1];
+                    if(terraria_user_name.equals("")) return;
+                    // messageSpec.setContent("Content not in an embed!");
+                    // You can see in this example even with simple singular property defining specs the syntax is concise
+                    messageSpec.setEmbed(embedSpec -> {
+                        embedSpec.setTitle(terraria_user_name + " left the Server.");
+                        embedSpec.setColor(Color.RED);
+                    });
+                }).block();
+            });
+
+        }catch(Exception ex) {
+            ex.printStackTrace();
+        }
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 // subscribe is like block, in that it will *request* for action
@@ -346,6 +431,7 @@ public class Core {
                             // We will be using ! as our "prefix" to any command in the system.
                             if (content.toLowerCase().startsWith(prefix + entry.getKey().toLowerCase())) {
                                 entry.getValue().execute(event);
+                                if(!commands.containsKey(entry.getKey())) return;
                                 break;
                             }
                         }
@@ -356,8 +442,12 @@ public class Core {
                         // We will be using ! as our "prefix" to any command in the system.
                         if (content.toLowerCase().startsWith(prefix + entry.getKey().toLowerCase())) {
                             entry.getValue().execute(event);
-                            break;
+                            return;
                         }
+                    }
+
+                    if (channel.getId().equals(terraria_channel.getId())) {
+                        TerrariaCommunicator.sendFormatedMessage(author.getUsername(), content);
                     }
 
                 });

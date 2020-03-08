@@ -23,7 +23,7 @@ class InputHandler {
 
     private String pmd_layout_const = "eos";
 
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     public static boolean setPMDLayout(String layout) {
         if(instance.pmd_layout.containsKey(layout)) {
