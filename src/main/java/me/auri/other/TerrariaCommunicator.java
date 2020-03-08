@@ -135,7 +135,7 @@ public class TerrariaCommunicator {
                     });
                     break;
                 case "ServerBroadcast":
-                    if (content.split("\n")[1].contains("has joined the ") && content.split("\n")[1].endsWith(" party.")) {
+                    if (content.split("\n")[0].contains("has joined the ") && content.split("\n")[0].endsWith(" party.")) {
 
                         if(teamJoinMsg.containsKey(content)) {
                             if(teamJoinMsg.get(content) <= System.currentTimeMillis() - 5000) {
