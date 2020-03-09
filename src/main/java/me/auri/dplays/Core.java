@@ -507,7 +507,11 @@ public class Core {
                         return;
                     }
 
-                    System.out.println("[" + DTF.format(now) + "] " +event.getMessage().getGuild().block().getName()+":"+ ((TextChannel) event.getMessage().getChannel().block()).getName() + ": " + event.getMember().get().getUsername() + " : " + content);
+                    try {
+                        System.out.println("[" + DTF.format(now) + "] " +event.getMessage().getGuild().block().getName()+":"+ ((TextChannel) event.getMessage().getChannel().block()).getName() + ": " + event.getMember().get().getUsername() + " : " + content);
+                    } catch(NullPointerException ex) {
+                        System.out.println("NPE -> Please fix this workaround :>");
+                    }
                     if (discordPlaysList.contains(channel.getId().asString())) {
                         // channel.createMessage("\"" + content + "\"").block();
                         

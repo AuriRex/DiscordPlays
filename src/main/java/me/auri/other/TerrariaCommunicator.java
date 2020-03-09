@@ -53,7 +53,7 @@ public class TerrariaCommunicator {
         for(Entry<String,String> e : formatReplacer.entrySet()) {
             message = message.replace(e.getKey(), e.getValue());
         }
-        sendMessage("[c/7289DA:<Discord>] " + author + " [c/7289DA:>] [c/dcddde:" + message + "]");
+        sendMessage("[c/7289DA:<Discord>] " + author + " [c/7289DA:>] " + message);
     }
 
     public static void sendMessage(String message) {
