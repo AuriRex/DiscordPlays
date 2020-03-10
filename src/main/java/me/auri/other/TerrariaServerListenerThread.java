@@ -29,7 +29,7 @@ class TerrariaServerListenerThread extends Thread {
                     data.append( (char) character);
                 }
                 receivedData = data.toString();
-                // System.out.println("TerrariaReceived: " + receivedData);
+                System.out.println("Received from Terraria: " + receivedData);
                 TerrariaCommunicator.handleIncomingData(receivedData);
                 connectionSocket.close();
             }
