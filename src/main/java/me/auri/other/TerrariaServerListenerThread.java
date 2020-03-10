@@ -34,7 +34,8 @@ class TerrariaServerListenerThread extends Thread {
                 connectionSocket.close();
             }
         }catch(IOException ex) {
-            
+            ex.printStackTrace();
+            System.out.println("dangit");
         }
     }
 
