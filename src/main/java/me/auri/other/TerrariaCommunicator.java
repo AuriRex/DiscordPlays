@@ -198,8 +198,8 @@ public class TerrariaCommunicator {
         }
 
         if(rawDataClean.size() < 2) {
-            ret.put("None", "no ip");
-            return ret;
+            // ret.put("None", "no ip");
+            return null;
         }
 
         for(int i = 0; i < rawDataClean.size(); i += 2) {

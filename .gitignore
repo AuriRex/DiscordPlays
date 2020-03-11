@@ -3,6 +3,7 @@
 
 #Bot Token
 config/token.txt
+config/config.txt
 config/profile.txt
 config/discord_plays_channel_ids.txt
 

@@ -108,17 +108,31 @@ public class Core {
         commands.put("playing", event -> {
             try {
                 HashMap<String, String> online = TerrariaCommunicator.getOnlinePlayers();
-                event.getMessage().getChannel().block().createMessage(messageSpec -> {
-                    messageSpec.setEmbed(embedSpec -> {
-                        embedSpec.setTitle("Online Players:");
-                        for(String key : online.keySet())
-                            embedSpec.addField("###", key, true);
-                        embedSpec.setColor(Color.WHITE);
-                    });
-                }).block();
+
+                if(online == null) {
+                    event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                        messageSpec.setEmbed(embedSpec -> {
+                            // embedSpec.setTitle("No one online currently.");
+                            embedSpec.setAuthor("No one online currently.", null, "https://gamepedia.cursecdn.com/terraria_gamepedia/a/ac/Tree.png");
+                            embedSpec.setColor(Color.WHITE);
+                        });
+                    }).block();
+                } else {
+                    event.getMessage().getChannel().block().createMessage(messageSpec -> {
+                        messageSpec.setEmbed(embedSpec -> {
+                            // embedSpec.setTitle("Online Players: ("+online.size()+")");
+                            embedSpec.setAuthor("Online Players: ("+online.size()+")", null, "https://gamepedia.cursecdn.com/terraria_gamepedia/a/ac/Tree.png");
+                            for(String key : online.keySet())
+                                embedSpec.addField("###", key, true);
+                            embedSpec.setColor(Color.WHITE);
+                        });
+                    }).block();
+                }
+
+                
             } catch(Exception ex) {
                 ex.printStackTrace();
-                System.out.println("Exception cought...");
+                System.out.println("Exception caught...");
             }
             
         });
@@ -141,7 +155,7 @@ public class Core {
                 }).block();
             } catch(Exception ex) {
                 ex.printStackTrace();
-                System.out.println("Exception cought...");
+                System.out.println("Exception caught...");
             }
             
         });
@@ -322,6 +336,8 @@ public class Core {
     static Guild discord_server = null;
     static MessageChannel terraria_channel = null;
 
+    static String terraria_channel_id = "676151086700036126";
+
     public static void main(String[] args) {
 
         String token = "";
@@ -340,6 +356,22 @@ public class Core {
         new InputHandler();
         new MacroManager();
         TerrariaCommunicator.init();
+
+        try {
+            ArrayList<String> cfg_al = readFile("./config/config.txt");
+            String tmp = cfg_al.get(0);
+            if(tmp != null && !tmp.equals("")) {
+                System.out.println("[CONFIG] Set new prefix: \""+tmp+"\"");
+                prefix = tmp;
+            }
+            tmp = cfg_al.get(1);
+            if(!tmp.equals("")) {
+                terraria_channel_id = tmp;
+                System.out.println("New Terraria channel set -> "+tmp);
+            }
+        }catch(Exception e) {
+            System.out.println("Config error! -> ignore !");
+        }
 
         try {
             ArrayList<String> profileAL = readFile("./config/profile.txt");
@@ -378,7 +410,7 @@ public class Core {
 
         try {
             // discord_server = client.getGuildById(Snowflake.of("554100310772154368")).block();
-            terraria_channel = (MessageChannel) client.getChannelById(Snowflake.of("676151086700036126")).block();
+            terraria_channel = (MessageChannel) client.getChannelById(Snowflake.of(terraria_channel_id)).block();
             // TestServer: 681562227597246471
             // BuCi: 676151086700036126
 
