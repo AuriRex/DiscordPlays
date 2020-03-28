@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import me.auri.other.events.*;
 
@@ -20,7 +22,17 @@ public class TerrariaCommunicator {
 
     private static final ArrayList<TerrariaServerEvent> events = new ArrayList<>();
 
+    private static Pattern pattern_itemtag = null;
+    private static Matcher matcher_itemtag = null;
+
+    private static Pattern pattern_itemtag_modifiers = null;
+    private static Matcher matcher_itemtag_modifiers = null;
+
+    private static HashMap<String, Boolean> flags = new HashMap<>();
+
     public static void init() {
+
+        initalFlags();
         
         serverThread = new TerrariaServerListenerThread();
         serverThread.start();
@@ -60,6 +72,110 @@ public class TerrariaCommunicator {
         sendData("say "+message);
     }
 
+    public static String getPrefix(String prefid) {
+        return sendData("prefid " + prefid);
+    }
+
+    public static String getItemName(String itemid) {
+        return sendData("itemid " + itemid);
+    }
+
+    private static String replaceModifiers(String mods) {
+
+        // mods -> "/s19,p2"
+        if(mods == null) return "";
+
+        if(pattern_itemtag_modifiers == null)
+            pattern_itemtag_modifiers = Pattern.compile("([psx])(\\d+)");
+
+        if(matcher_itemtag_modifiers == null)
+            matcher_itemtag_modifiers = pattern_itemtag_modifiers.matcher(mods);
+        else
+            matcher_itemtag_modifiers.reset(mods.substring(1, mods.length()));
+
+
+        String ret = "";
+
+        while(matcher_itemtag_modifiers.find()) {
+
+            String type = "";
+            String value = "";
+
+            try {
+                type = matcher_itemtag_modifiers.group(1);
+                value = matcher_itemtag_modifiers.group(2);
+            } catch(IllegalStateException ex) {
+                continue;
+            }
+
+            if(type.equals("s") || type.equals("x")) {
+                ret += value + "x";
+            } else if (type.equals("p")) {
+                if(!ret.equals("")) ret += " ";
+                ret += getPrefix(value);
+            }
+
+        }
+
+        return ret;
+    }
+    // Regex
+    // ([psx])(\d+)
+
+    public static String replaceItemTags(String rawData) {
+        return replaceItemTags(rawData, true);
+    }
+
+    public static String replaceItemTags(String rawData, boolean inBrackets) {
+
+        // \[i(\/([psx]\d+,?)*)?:(\d+)\]
+        if(pattern_itemtag == null)
+            pattern_itemtag = Pattern.compile("\\[i(\\/([psx]\\d+,?)*)?:(\\d+)\\]");
+
+        if(matcher_itemtag == null)
+            matcher_itemtag = pattern_itemtag.matcher(rawData);
+        else
+            matcher_itemtag.reset(rawData);
+        
+        String ret = matcher_itemtag.replaceAll( mr -> {
+            
+            String mods = "";
+            String item_id = "";
+
+            try {
+                mods = mr.group(1);
+            } catch(IllegalStateException ex) {
+
+            }
+
+            try {
+                item_id = mr.group(3);
+            } catch(IllegalStateException ex) {
+                ex.printStackTrace();
+            }
+
+            String item_name = getItemName(item_id);
+
+            String append = replaceModifiers(mods);
+
+            String final_name_combined = "";
+
+            if(append.equals("")) {
+                final_name_combined = item_name;
+            } else {
+                final_name_combined = append + " "  + item_name;
+            }
+
+            if(inBrackets) {
+                return "[" + final_name_combined + "]";
+            } else {
+                return final_name_combined;
+            }
+        });
+
+        return ret;
+    }
+
     public static String sendData(String sendData) {
 
         int port = 11000;
@@ -95,6 +211,20 @@ public class TerrariaCommunicator {
 
     static HashMap<String, Long> teamJoinMsg = new HashMap<>();
 
+    private static void initalFlags() {
+        flags.put("replaceItemTags", true);
+    }
+
+    public static void setFlag(String flag, boolean value) {
+        if(flags.containsKey(flag)) {
+            flags.put(flag, value);
+        }
+    }
+
+    public static Boolean getFlag(String flag) {
+        return flags.get(flag);
+    }
+
     public static void handleIncomingData(String receivedData) {
 
         String[] rawData = receivedData.split(":", 2);
@@ -121,8 +251,15 @@ public class TerrariaCommunicator {
                             if (e instanceof TerrariaServerCommandEvent)
                                 e.execute(content);
                         } else {
-                            if (e instanceof TerrariaServerChatEvent)
-                                e.execute(content);
+                            if (e instanceof TerrariaServerChatEvent) {
+                                if(flags.get("replaceItemTags")) {
+                                    // You might ask: Why do this here and not Server side?
+                                    // That's a good question tbh - I just wanted to get some experience with regex in java I guess :P
+                                    e.execute(replaceItemTags(content));
+                                } else {
+                                    e.execute(content);
+                                }
+                            }
                         }
                     });
                     break;

@@ -445,6 +445,10 @@ public class Core {
                 }).block();
             });
 
+            TerrariaCommunicator.subscribe((TerrariaServerJoinPartyEvent) e -> {
+                System.out.println("[TerrariaServerJoinPartyEvent]{" + e + "}[end]");
+            });
+
             TerrariaCommunicator.subscribe((TerrariaServerLeaveEvent) e -> {
                 terraria_channel.createMessage(messageSpec -> {
 
@@ -489,8 +493,7 @@ public class Core {
                     final Color final_color = temp_color;
 
                     if(terraria_message.equals("")) return;
-                    // messageSpec.setContent("Content not in an embed!");
-                    // You can see in this example even with simple singular property defining specs the syntax is concise
+
                     messageSpec.setEmbed(embedSpec -> {
                         embedSpec.setTitle(terraria_message);
                         if(final_color != null)
@@ -535,7 +538,11 @@ public class Core {
                     LocalDateTime now = LocalDateTime.now();
 
                     if(content.equals("")) {
-                        System.out.println("[" + DTF.format(now) + "] " +event.getMessage().getGuild().block().getName()+":"+ ((TextChannel) event.getMessage().getChannel().block()).getName() + ": " + event.getMember().get().getUsername() + " sent an empty message.");
+                        Guild sent_guild = event.getMessage().getGuild().block();
+                        TextChannel sent_channel = ((TextChannel) event.getMessage().getChannel().block());
+                        if(sent_channel == null || sent_guild == null) return;
+
+                        System.out.println("[" + DTF.format(now) + "] " +sent_guild.getName()+":"+ sent_channel.getName() + ": " + event.getMember().get().getUsername() + " sent an empty message.");
                         return;
                     }
 
