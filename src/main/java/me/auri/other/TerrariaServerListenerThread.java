@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.Charset;
 
+@Deprecated
 class TerrariaServerListenerThread extends Thread {
 
     TerrariaServerListenerThread () {}

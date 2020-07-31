@@ -13,8 +13,9 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import me.auri.other.events.*;
+import me.auri.other.events.terraria.*;
 
+@Deprecated
 public class TerrariaCommunicator {
 
 
@@ -231,6 +232,11 @@ public class TerrariaCommunicator {
         String event = rawData[0];
         String content = rawData[1].substring(1);
 
+        if(content.equals("")) {
+            System.out.println("Received empty content, canceling event!");
+            return;
+        }
+
         try {
             switch (event) {
                 case "ServerJoin":
@@ -311,6 +317,12 @@ public class TerrariaCommunicator {
             }//ServerBroadcast TerrariaServerBroadcastEvent
         } catch(IndexOutOfBoundsException ex) {
             System.out.println("IOoBException: TerrariaCommunicator -> this shouldn't happen.");
+        } catch(Exception ex) {
+            System.out.println("Caught exception: " + ex);
+            events.forEach(e -> {
+                if(e instanceof TerrariaCommunicatorExceptionEvent)
+                    e.execute(ex.toString());
+            });
         }
 
 	}

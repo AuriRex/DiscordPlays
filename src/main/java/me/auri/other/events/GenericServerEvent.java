@@ -1,5 +1,5 @@
 package me.auri.other.events;
 
-public interface TerrariaServerEvent {
+public interface GenericServerEvent {
     void execute(String content);
 }

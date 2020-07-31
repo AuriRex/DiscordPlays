@@ -13,7 +13,7 @@ import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.util.Snowflake;
 import me.auri.other.TerrariaCommunicator;
-import me.auri.other.events.*;
+import me.auri.other.events.terraria.*;
 import reactor.core.publisher.Mono;
 
 import java.awt.Color;
@@ -415,17 +415,27 @@ public class Core {
             // BuCi: 676151086700036126
 
             TerrariaCommunicator.subscribe((TerrariaServerChatEvent) e -> {
-                terraria_channel.createMessage(messageSpec -> {
+                try {
+                    terraria_channel.createMessage(messageSpec -> {
 
-                    String[] terraria_args = e.split("\n",2);
-                    if(terraria_args.length != 2) return;
-                    String terraria_msg_author = terraria_args[0];
-                    String terraria_msg = terraria_args[1];
-                    if(terraria_msg.equals("")) return;
-                    // messageSpec.setContent("Content not in an embed!");
-                    // You can see in this example even with simple singular property defining specs the syntax is concise
-                    messageSpec.setContent("**"+terraria_msg_author + "** > ``" + terraria_msg + "``");
-                }).block();
+                        String[] terraria_args = e.split("\n",2);
+                        if(terraria_args.length != 2) return;
+                        String terraria_msg_author = terraria_args[0];
+                        String terraria_msg = terraria_args[1];
+                        
+                        if(terraria_msg.equals("")) throw new IllegalArgumentException("Empty Message not permitted!");
+                        
+                        // Dont allow escape
+                        terraria_msg = terraria_msg.replace("`", "'");
+    
+                        messageSpec.setContent("**"+terraria_msg_author + "** > ``" + terraria_msg + "``");
+                        
+                       
+                    }).block();
+                } catch(IllegalArgumentException ex) {
+                    
+                }
+                
             });
 
             TerrariaCommunicator.subscribe((TerrariaServerJoinEvent) e -> {
@@ -539,7 +549,12 @@ public class Core {
 
                     if(content.equals("")) {
                         Guild sent_guild = event.getMessage().getGuild().block();
-                        TextChannel sent_channel = ((TextChannel) event.getMessage().getChannel().block());
+                        MessageChannel chnl = event.getMessage().getChannel().block();
+                        if(! (chnl instanceof TextChannel)) {
+                            System.out.println("[" + DTF.format(now) + "] ### Not instanceof TextChannel! Aborting! " + chnl.getType());
+                            return;
+                        }
+                        TextChannel sent_channel = ((TextChannel) chnl);
                         if(sent_channel == null || sent_guild == null) return;
 
                         System.out.println("[" + DTF.format(now) + "] " +sent_guild.getName()+":"+ sent_channel.getName() + ": " + event.getMember().get().getUsername() + " sent an empty message.");
