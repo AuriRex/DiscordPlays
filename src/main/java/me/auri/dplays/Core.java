@@ -799,10 +799,14 @@ public class Core {
                         TerrariaCommunicator.sendFormatedMessage(author.getUsername(), content);
                     }
 
-                    if(channel.getId().equals(minecraft_channel.getId())) {
+                    if(channelSync.containsKey(channel.getId().asString())) {
                         if(content.equals("")) return;
-                        Communicator.getByName("Minecraft").sendEvent("Ciphercraft", "DiscordChatEvent", author.getUsername().replaceAll(";", ":") + ";" + content);
+                        Communicator.getByName(getGameByChannel(channel.getId().asString())).sendEvent(getIdentifierByChannel(channel.getId().asString()), "DiscordChatEvent", author.getUsername().replaceAll(";", ":") + ";" + content);
                     }
+                    // if(channel.getId().equals(minecraft_channel.getId())) {
+                    //     if(content.equals("")) return;
+                    //     Communicator.getByName("Minecraft").sendEvent("Ciphercraft", "DiscordChatEvent", author.getUsername().replaceAll(";", ":") + ";" + content);
+                    // }
 
                 });
 
