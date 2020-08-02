@@ -113,6 +113,20 @@ public class Communicator implements ICommunicator {
 
     }
 
+    public void sendEvent(String identifier, String event, String content) {
+
+        ClientConnectionThread[] ccta = cctPair.get(identifier);
+
+        if(ccta != null && ccta[0] != null) {
+            ccta[0].queueEvent(event, content);
+            //System.out.println("[Communicator] Sent to \""+identifier+"\"! " + event + ": " + content);
+        } else {
+            System.out.println("[Communicator] Error sending message! \""+identifier+"\" does not exist / is not connected!");
+        }
+
+
+    }
+
     public void setFlag(String flag, boolean value) {
         flags.put(flag, value);
     }
@@ -121,32 +135,32 @@ public class Communicator implements ICommunicator {
         return flags.get(flag);
     }
 
-    public void handleIncomingData(String receivedData) {
+    public boolean handleIncomingData(String identification, String receivedData) {
 
         String[] rawData = receivedData.split(":", 2);
         if(rawData.length < 2) {
             System.out.println("Received garbage data, canceling event!");
-            return;
+            return false;
         }
         String event = rawData[0];
         String content = rawData[1].substring(1);
 
         if(content.equals("")) {
             System.out.println("Received empty content, canceling event!");
-            return;
+            return false;
         }
 
-        handleEvents(event, content);
+        return handleEvents(identification, event, content);
 
     }
     
-    public void handleEvents(String event, String content) {
+    public boolean handleEvents(String identification, String event, String content) {
         try {
             switch (event) {
                 default:
                     events.forEach(e -> {
                         if(e instanceof GenericNotImplementedEvent)
-                            e.execute(event + ": " + content);
+                            e.execute(identification, event + ": " + content);
                     });
             }
         } catch(IndexOutOfBoundsException ex) {
@@ -156,20 +170,22 @@ public class Communicator implements ICommunicator {
             System.out.println("Caught exception: " + ex);
             events.forEach(e -> {
                 if(e instanceof GenericExceptionEvent)
-                    e.execute(ex.toString());
+                    e.execute(identification, ex.toString());
             });
         }
+
+        return true;
     }
 
 	public void subscribe(GenericServerEvent event) {
         events.add(event);
 	}
 
-	public static Communicator getByName(String receivedData) {
-        if(Communicator.coms.containsKey(receivedData))
-            return Communicator.coms.get(receivedData);
+	public static Communicator getByName(String comName) {
+        if(Communicator.coms.containsKey(comName))
+            return Communicator.coms.get(comName);
 
-        System.out.println("[Error] Unknown Communicator \""+receivedData+"\", defaulting to standard implementation!");
+        System.out.println("[Error] Unknown Communicator \""+comName+"\", defaulting to standard implementation!");
 		return Communicator.coms.get("Communicator");
 	}
 
@@ -216,16 +232,18 @@ public class Communicator implements ICommunicator {
     public static ClientConnectionThread getPartnerThread(ClientConnectionThread cct) {
         ClientConnectionThread[] ccta = cct.getCom().cctPair.get(cct.getIdentifier());
 
-        int index = 0;
+        int index = 1;
 
-        if(!cct.isRequest()) {
-            index++;
+        if(cct.isRequest()) {
+            index = 0;
         }
 
         return ccta[index];
     }
 
 	public static void freeSlot(ClientConnectionThread cct) {
+
+        System.out.println("[Communicator] Freeing slot " + cct.getCom().getName() + ":" + cct.getIdentifier() + ":" + cct.isRequest());
 
         ClientConnectionThread[] ccta = cct.getCom().cctPair.get(cct.getIdentifier());
 
@@ -242,10 +260,19 @@ public class Communicator implements ICommunicator {
 	public static void closeConnections(ClientConnectionThread cct) {
 
         try {
-            getPartnerThread(cct).close();
-            cct.close();
-            freeSlot(getPartnerThread(cct));
+            if(isPartnerThreadAvailable(cct)) {
+                ClientConnectionThread partner = getPartnerThread(cct);
+                freeSlot(partner);
+                partner.close();
+            }
+            
+        } catch(IOException ex) {
+            //ex.printStackTrace();
+        }
+
+        try {
             freeSlot(cct);
+            cct.close();
         } catch(IOException ex) {
 
         }

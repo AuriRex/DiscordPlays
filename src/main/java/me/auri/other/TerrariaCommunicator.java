@@ -228,6 +228,8 @@ public class TerrariaCommunicator {
 
     public static void handleIncomingData(String receivedData) {
 
+        String identification = null;
+
         String[] rawData = receivedData.split(":", 2);
         String event = rawData[0];
         String content = rawData[1].substring(1);
@@ -242,28 +244,28 @@ public class TerrariaCommunicator {
                 case "ServerJoin":
                     events.forEach(e -> {
                         if (e instanceof TerrariaServerJoinEvent)
-                            e.execute(content);
+                            e.execute(identification, content);
                     });
                     break;
                 case "ServerLeave":
                     events.forEach(e -> {
                         if (e instanceof TerrariaServerLeaveEvent)
-                            e.execute(content);
+                            e.execute(identification, content);
                     });
                     break;
                 case "ServerChat":
                     events.forEach(e -> {
                         if (content.split("\n", 2)[1].startsWith("/")) {
                             if (e instanceof TerrariaServerCommandEvent)
-                                e.execute(content);
+                                e.execute(identification, content);
                         } else {
                             if (e instanceof TerrariaServerChatEvent) {
                                 if(flags.get("replaceItemTags")) {
                                     // You might ask: Why do this here and not Server side?
                                     // That's a good question tbh - I just wanted to get some experience with regex in java I guess :P
-                                    e.execute(replaceItemTags(content));
+                                    e.execute(identification, replaceItemTags(content));
                                 } else {
-                                    e.execute(content);
+                                    e.execute(identification, content);
                                 }
                             }
                         }
@@ -272,19 +274,19 @@ public class TerrariaCommunicator {
                 case "GamePostInitialize":
                     events.forEach(e -> {
                         if (e instanceof TerrariaServerGamePostInitializeEvent)
-                            e.execute(content);
+                            e.execute(identification, content);
                     });
                     break;
                 case "ServerInit":
                     events.forEach(e -> {
                         if (e instanceof TerrariaServerInitEvent)
-                            e.execute(content);
+                            e.execute(identification, content);
                     });
                     break;
                 case "ServerShutdown":
                     events.forEach(e -> {
                         if (e instanceof TerrariaServerShutdownEvent)
-                            e.execute(content);
+                            e.execute(identification, content);
                     });
                     break;
                 case "ServerBroadcast":
@@ -298,21 +300,21 @@ public class TerrariaCommunicator {
 
                         events.forEach(e -> {
                             if(e instanceof TerrariaServerJoinPartyEvent)
-                                e.execute(content);
+                                e.execute(identification, content);
                         });
 
                         teamJoinMsg.put(content, System.currentTimeMillis());
                     } else {
                         events.forEach(e -> {
                             if(e instanceof TerrariaServerBroadcastEvent)
-                                e.execute(content);
+                                e.execute(identification, content);
                         });
                     }
                     break;
                 default:
                     events.forEach(e -> {
                         if(e instanceof TerrariaServerUnknownEvent)
-                            e.execute(receivedData);
+                            e.execute(identification, receivedData);
                     });
             }//ServerBroadcast TerrariaServerBroadcastEvent
         } catch(IndexOutOfBoundsException ex) {
@@ -321,13 +323,14 @@ public class TerrariaCommunicator {
             System.out.println("Caught exception: " + ex);
             events.forEach(e -> {
                 if(e instanceof TerrariaCommunicatorExceptionEvent)
-                    e.execute(ex.toString());
+                    e.execute(identification, ex.toString());
             });
         }
 
 	}
 
 	public static void subscribe(TerrariaServerEvent event) {
+        if(events == null) return;
         events.add(event);
 	}
 

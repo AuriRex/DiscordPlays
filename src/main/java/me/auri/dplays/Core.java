@@ -12,7 +12,11 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.util.Snowflake;
+import me.auri.other.Communicator;
+import me.auri.other.MinecraftCommunicator;
+import me.auri.other.ServerListenerThread;
 import me.auri.other.TerrariaCommunicator;
+import me.auri.other.events.minecraft.*;
 import me.auri.other.events.terraria.*;
 import reactor.core.publisher.Mono;
 
@@ -105,7 +109,7 @@ public class Core {
                 .createMessage("Input How-To:\n  0. Type \""+prefix+"listkeys\" to get a List of all pressable Keys.\n  1. type the key into the chat. -> \"RIGHT\"\n  2. chain inputs by seperating them with spaces. -> \"UP RIGHT DOWN LEFT\"\n  3. Loop key inputs with the + operator. -> \"RIGHT+5\" (presses RIGHT 5 times)\n  4. Modify keys with \"!hold <key>\", \""+prefix+"release <key>\" and \""+prefix+"toggle <key>\". -> \""+prefix+"hold RIGHT\"\n  4.5. Modify keys with the : operator (\"<key>:h\", \"<key>:r\" and \"<key>:t\"). -> \"RIGHT:h\"").block();
         });
 
-        commands.put("playing", event -> {
+        commands.put("playingterraria", event -> {
             try {
                 HashMap<String, String> online = TerrariaCommunicator.getOnlinePlayers();
 
@@ -335,8 +339,63 @@ public class Core {
 
     static Guild discord_server = null;
     static MessageChannel terraria_channel = null;
+    static MessageChannel minecraft_channel = null;
 
     static String terraria_channel_id = "676151086700036126";
+
+
+    static String minecraft_channel_id = "681562227597246471";
+
+    // Game;Syncname;dicordchannelid
+    // discordchannelid > syncname
+    // discordchannelid > game
+    // discordchannelid > [0game, 1syncname]
+    static HashMap<String, String[]> channelSync = new HashMap<>();
+    static HashMap<String, MessageChannel> channelSyncIDs = new HashMap<>();
+
+    private static String getChannelID(String game, String identifier) {
+  
+        for(Entry<String, String[]> tmp : channelSync.entrySet()) {
+            if(tmp.getValue().length > 1) {
+                if(tmp.getValue()[0].equalsIgnoreCase(game) && tmp.getValue()[1].equalsIgnoreCase(identifier)) {
+                    return tmp.getKey();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String getGameByChannel(String channelID) {
+        String ret = null;
+
+        String[] temp = channelSync.get(channelID);
+
+        if(temp != null) {
+            if(temp.length > 1) {
+                return temp[0];
+            }
+        }
+
+        return ret;
+    }
+
+    private static String getIdentifierByChannel(String channelID) {
+        String ret = null;
+
+        String[] temp = channelSync.get(channelID);
+
+        if(temp != null) {
+            if(temp.length > 1) {
+                return temp[1];
+            }
+        }
+
+        return ret;
+    }
+
+    private static MessageChannel getCachedChannel(String channelID) {
+        return channelSyncIDs.get(channelID);
+    }
 
     public static void main(String[] args) {
 
@@ -349,13 +408,60 @@ public class Core {
             System.out.println("No token available! -> token.txt not accessible!");
             System.exit(1);
         }
-        final String owner_id = "156647870093590528";
+        final String creator_id = "156647870093590528";
 
         defaultVars();
 
         new InputHandler();
         new MacroManager();
-        TerrariaCommunicator.init();
+
+        //TerrariaCommunicator.init();
+        ArrayList<String> encKeyDataFile = null;
+        try {
+            encKeyDataFile = readFile("./config/enc.txt");
+        } catch (Exception e) {
+            
+        }
+        ServerListenerThread slt = new ServerListenerThread();
+        
+        if(encKeyDataFile != null) {
+            encKeyDataFile.forEach(ekd -> {
+                String[] _ekd = ekd.split(";",2);
+                if(_ekd.length > 1) {
+                    slt.setEncKeyData(_ekd[0], new String[] {_ekd[1]});
+                }
+            });
+        }
+        
+        slt.start();
+
+        // Add other Communicators here
+        new MinecraftCommunicator().init();
+
+        ServerListenerThread.setReady();
+
+        // Game;Syncname;dicordchannelid
+        // discordchannelid > syncname
+        // discordchannelid > game
+        // discordchannelid > [game, syncname]
+        ArrayList<String> channelSyncFile = null;
+        try {
+            channelSyncFile = readFile("./config/channelSync.txt");
+
+            channelSyncFile.forEach(s -> {
+
+                String[] tmp = s.split(";", 3);
+                if(tmp.length > 2) {
+                    channelSync.put(tmp[2], new String[] {tmp[0], tmp[1]});
+                }
+
+            });
+
+        } catch (Exception e) {
+        }
+
+        
+
 
         try {
             ArrayList<String> cfg_al = readFile("./config/config.txt");
@@ -404,17 +510,108 @@ public class Core {
 
         client = clientBuilder.build();
 
-        TerrariaCommunicator.addFormatReplace("<:i29:686297958316245002>", "[i:29]");
-        TerrariaCommunicator.addFormatReplace("@", "");
-        TerrariaCommunicator.addFormatReplace("`", "'");
+        //TerrariaCommunicator.addFormatReplace("<:i29:686297958316245002>", "[i:29]");
+        //TerrariaCommunicator.addFormatReplace("@", "");
+        //TerrariaCommunicator.addFormatReplace("`", "'");
 
         try {
             // discord_server = client.getGuildById(Snowflake.of("554100310772154368")).block();
             terraria_channel = (MessageChannel) client.getChannelById(Snowflake.of(terraria_channel_id)).block();
+            minecraft_channel = (MessageChannel) client.getChannelById(Snowflake.of(minecraft_channel_id)).block();
+
+            channelSync.keySet().forEach(k -> {
+                channelSyncIDs.put(k, (MessageChannel) client.getChannelById(Snowflake.of(k)).block());
+            });
+
             // TestServer: 681562227597246471
             // BuCi: 676151086700036126
 
-            TerrariaCommunicator.subscribe((TerrariaServerChatEvent) e -> {
+            Communicator.getByName("Minecraft").subscribe((MinecraftPlayerChatEvent) (identification, e) -> {
+                try {
+
+                    String channelID = getChannelID("Minecraft", identification);
+                    if(channelID == null) return;
+
+                    MessageChannel chan = getCachedChannel(channelID);
+                    if(chan == null) return;
+
+                    chan.createMessage(messageSpec -> {
+
+                        String[] received_args = e.split(";",2);
+                        if(received_args.length != 2) return;
+                        String message_author = received_args[0];
+                        String message = received_args[1].replaceAll("@", "(at)");
+                        
+                        if(message.equals("")) throw new IllegalArgumentException("Empty Message not permitted!");
+                        
+                        // Dont allow escape
+                        message = message.replace("`", "'");
+    
+                        messageSpec.setContent("**"+message_author + "** > " + message);
+                        
+                       
+                    }).block();
+                } catch(IllegalArgumentException ex) {
+                    
+                }
+            });
+
+            Communicator.getByName("Minecraft").subscribe((MinecraftPlayerJoinEvent) (identification, e) -> {
+                try {
+
+                    String channelID = getChannelID("Minecraft", identification);
+                    if(channelID == null) return;
+
+                    MessageChannel chan = getCachedChannel(channelID);
+                    if(chan == null) return;
+
+                    chan.createMessage(messageSpec -> {
+
+                        String message_author = e;
+                        
+                        if(message_author.equals("")) throw new IllegalArgumentException("Empty Message not permitted!");
+                        
+    
+                        //messageSpec.setContent("**"+message_aouthor + "** > " + message);
+                        messageSpec.setEmbed(embedSpec -> {
+                            embedSpec.setTitle(message_author + " joined the Server.");
+                            embedSpec.setColor(Color.GREEN);
+                        });
+                       
+                    }).block();
+                } catch(IllegalArgumentException ex) {
+                    
+                }
+            });
+
+            Communicator.getByName("Minecraft").subscribe((MinecraftPlayerQuitEvent) (identification, e) -> {
+                try {
+
+                    String channelID = getChannelID("Minecraft", identification);
+                    if(channelID == null) return;
+
+                    MessageChannel chan = getCachedChannel(channelID);
+                    if(chan == null) return;
+
+                    chan.createMessage(messageSpec -> {
+
+                        String message_author = e;
+                        
+                        if(message_author.equals("")) throw new IllegalArgumentException("Empty Message not permitted!");
+                        
+                        //messageSpec.setContent("**"+message_aouthor + "** > " + message);
+                        messageSpec.setEmbed(embedSpec -> {
+                            embedSpec.setTitle(message_author + " left the Server.");
+                            embedSpec.setColor(Color.RED);
+                        });
+                       
+                    }).block();
+                } catch(IllegalArgumentException ex) {
+                    
+                }
+            });
+
+            TerrariaCommunicator.subscribe((TerrariaServerChatEvent) (identification, e) -> {
                 try {
                     terraria_channel.createMessage(messageSpec -> {
 
@@ -438,7 +635,7 @@ public class Core {
                 
             });
 
-            TerrariaCommunicator.subscribe((TerrariaServerJoinEvent) e -> {
+            TerrariaCommunicator.subscribe((TerrariaServerJoinEvent) (identification, e) -> {
                 terraria_channel.createMessage(messageSpec -> {
 
                     String[] terraria_args = e.split("\n",2);
@@ -455,11 +652,11 @@ public class Core {
                 }).block();
             });
 
-            TerrariaCommunicator.subscribe((TerrariaServerJoinPartyEvent) e -> {
+            TerrariaCommunicator.subscribe((TerrariaServerJoinPartyEvent) (identification, e) -> {
                 System.out.println("[TerrariaServerJoinPartyEvent]{" + e + "}[end]");
             });
 
-            TerrariaCommunicator.subscribe((TerrariaServerLeaveEvent) e -> {
+            TerrariaCommunicator.subscribe((TerrariaServerLeaveEvent) (identification, e) -> {
                 terraria_channel.createMessage(messageSpec -> {
 
                     String[] terraria_args = e.split("\n",2);
@@ -476,7 +673,7 @@ public class Core {
                 }).block();
             });
 
-            TerrariaCommunicator.subscribe((TerrariaServerBroadcastEvent) e -> {
+            TerrariaCommunicator.subscribe((TerrariaServerBroadcastEvent) (identification, e) -> {
 
                 terraria_channel.createMessage(messageSpec -> {
 
@@ -514,7 +711,7 @@ public class Core {
 
             });
 
-            TerrariaCommunicator.subscribe((TerrariaServerUnknownEvent) e -> {
+            TerrariaCommunicator.subscribe((TerrariaServerUnknownEvent) (identification, e) -> {
                 System.out.println("Unknown Event: "+e);
             });
 
@@ -576,7 +773,7 @@ public class Core {
                         
                     }
 
-                    if (author.getId().asString().equals(owner_id) || author.getId().asString().equals("210955280307978240" /* Aeros Discord ID */)) {
+                    if (author.getId().asString().equals(creator_id) || author.getId().asString().equals("210955280307978240" /* Aeros Discord ID */)) {
                         // Admin Stuff
                         for (final Map.Entry<String, Command> entry : adminCommands.entrySet()) {
                             // We will be using ! as our "prefix" to any command in the system.
@@ -598,7 +795,13 @@ public class Core {
                     }
 
                     if (channel.getId().equals(terraria_channel.getId())) {
+                        if(true) return;
                         TerrariaCommunicator.sendFormatedMessage(author.getUsername(), content);
+                    }
+
+                    if(channel.getId().equals(minecraft_channel.getId())) {
+                        if(content.equals("")) return;
+                        Communicator.getByName("Minecraft").sendEvent("Ciphercraft", "DiscordChatEvent", author.getUsername().replaceAll(";", ":") + ";" + content);
                     }
 
                 });

@@ -2,6 +2,6 @@ package me.auri.other;
 
 public interface ICommunicator {
     
-    public void handleEvents(String event, String content);
+    public boolean handleEvents(String identification, String event, String content);
 
 }
