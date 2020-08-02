@@ -15,6 +15,9 @@ config/other/*/
 config/macros/*/
 !config/macros/
 
+target/
+.vscode/
+
 # Log file
 *.log
 
