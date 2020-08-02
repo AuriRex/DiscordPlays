@@ -611,6 +611,33 @@ public class Core {
                 }
             });
 
+            Communicator.getByName("Minecraft").subscribe((MinecraftPlayerDeathEvent) (identification, e) -> {
+                try {
+
+                    String channelID = getChannelID("Minecraft", identification);
+                    if(channelID == null) return;
+
+                    MessageChannel chan = getCachedChannel(channelID);
+                    if(chan == null) return;
+
+                    chan.createMessage(messageSpec -> {
+
+                        String message = e;
+                        
+                        if(message.equals("")) throw new IllegalArgumentException("Empty Message not permitted!");
+                        
+                        //messageSpec.setContent("**"+message_aouthor + "** > " + message);
+                        messageSpec.setEmbed(embedSpec -> {
+                            embedSpec.setTitle(message);
+                            embedSpec.setColor(new Color(71,0,0));
+                        });
+                       
+                    }).block();
+                } catch(IllegalArgumentException ex) {
+                    
+                }
+            });
+
             TerrariaCommunicator.subscribe((TerrariaServerChatEvent) (identification, e) -> {
                 try {
                     terraria_channel.createMessage(messageSpec -> {
