@@ -12,6 +12,7 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.util.Snowflake;
+import me.auri.other.ClientConnectionThread;
 import me.auri.other.Communicator;
 import me.auri.other.MinecraftCommunicator;
 import me.auri.other.ServerListenerThread;
@@ -334,6 +335,30 @@ public class Core {
 
         adminCommands.put("quit", event -> quit(event));
         adminCommands.put("exit()", event -> System.exit(2));
+
+        adminCommands.put("freeCCTSlot", event -> {
+            String msg = event.getMessage().getContent().orElse("");
+
+            if(msg.equalsIgnoreCase("")) return;
+
+            String[] arg = msg.split(";");
+
+            if(arg.length < 2) {
+                return;
+            }
+
+            Communicator com = Communicator.getByName(arg[0]);
+            if(com == null)
+                return;
+
+            ClientConnectionThread cct = com.getCCTByName(arg[1], true);
+
+            if(cct == null)
+                return;
+
+            Communicator.closeConnections(cct);
+
+        });
     }
 
 
