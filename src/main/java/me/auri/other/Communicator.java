@@ -281,7 +281,9 @@ public class Communicator implements ICommunicator {
 	}
 
 	public ClientConnectionThread getCCTByName(String string, boolean b) {
-		return cctPair.get(string)[b?0:1];
+        if(cctPair.containsKey(string))
+            return cctPair.get(string)[b?0:1];
+        return null;
 	}
 
 	

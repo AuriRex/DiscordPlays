@@ -347,7 +347,7 @@ public class Core {
                 return;
             }
 
-            Communicator com = Communicator.getByName(arg[0]);
+            Communicator com = Communicator.getByName(arg[0].substring(13));
             if(com == null)
                 return;
 
